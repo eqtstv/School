@@ -1,4 +1,5 @@
 import numpy as np
+import random as rnd
 
 #   Parametry
 # - ilosc przystanków
@@ -9,7 +10,15 @@ import numpy as np
 
 #   TODO:
 # - ustawianie sie w kolejke
-# - wskaznik jakosci
+# - wskaznik 
+
+# Notes:
+# log norm
+# kazdy test 3x minimum
+# t srednia 0.3 i sprawdzac dochylenia 0.05:0.1
+# wsiadanie wysiadanie rozklad lognorm
+# czasy, wsiadajacy, wysiadajacy
+# plan dwupoziomowy calkowity
 
 
 class Stop:
@@ -30,10 +39,8 @@ class Bus:
 
     def exit_passengers(self, exiting):
         self.left = [self.passengers[i] for i in exiting if i<len(self.passengers)]
-
         for i in self.left:
-            self.passengers.remove(i)
-
+            self.passengers.remove(i)         
         return sum(self.left)
 
 class Bus2:
@@ -51,7 +58,7 @@ class Bus2:
             else:
                 self.entering1.append(i)
 
-        return max(sum(self.entering1), sum(self.entering2))
+        return sum(self.entering1), sum(self.entering2)
 
     def exit_passengers(self, exiting):
         self.left = [self.passengers[i] for i in exiting if i<len(self.passengers)]
@@ -67,88 +74,75 @@ class Bus2:
         for i in self.left:
             self.passengers.remove(i)
 
-        return max(sum(self.exiting1), sum(self.exiting2))
+        return sum(self.exiting1), sum(self.exiting2)
 
 
-def time_on_stop(entering, exiting):
+def time_on_stop_Bus1(entering, exiting):
     return max(entering, exiting)
 
+def time_on_stop_Bus2(q1et, q2et, q1ex, q2ex):
+    return max(q1et + q1ex, q2et + q2ex)
 
-# tworzenie busa 1
-bus1 = Bus()
+def make_stops(no_stops, entering, times):
+    """
+    Args:
+        no_stops (int): Number of stops.
+        entering (avg, std_dev): Average and std_dev of people in every stop lognorm(avg, std_dev)
+        times (avg, std_dev): Average and std_dev of move times for ppl lognorm(avg, std_dev)
 
-# ----------------------------------------
+    Returns:
+        stops (list): List of Stop objects
 
-# tworzenie przystankow
+    """
+    stops = [Stop(np.random.lognormal(entering[0], entering[1])) for i in range(no_stops)]
+    for stop in stops:
+        stop.add_pending([np.random.lognormal(times[0], times[1]) for ppl in range(stop.no_ppl)])
+    return stops
 
-# stop1
-stop1 = Stop(np.random.normal(5, 3))
-stop1.add_pending([abs(np.random.normal(10, 5)) for ppl in range(stop1.no_ppl)])
+def make_trip(bus, stops, exiting):
+    """
+    Args:
+        bus (object): Created bus object
+        stops (list): List of stop objects
+        exiting (avg, std_dev): Average and std_dev of ppl exiting on every stop
 
-# stop2
-stop2 = Stop(2)
-stop2.add_pending([5 for ppl in range(stop2.no_ppl)])
-stop2exit = [1, 2]
+    Returns:
+        stop_times (list): List of stop times on every stop
 
-# stop3
-stop3 = Stop(np.random.normal(3, 2))
-stop3.add_pending([np.random.uniform(5) for ppl in range(stop3.no_ppl)])
+    """
+    if type(bus) is Bus:
+        stop_times = []
+        for stop in stops:
+            exiting_time = bus.exit_passengers(list(set(np.random.randint(len(bus.passengers)+1, size=int(np.random.lognormal(exiting[0], exiting[1]))))))
+            entering_time = bus.enter_passengers(stop.pending)
+            stop_times.append(time_on_stop_Bus1(entering_time, exiting_time))
+        return stop_times
 
-# ----------------------------------------
-
-# wsiadanie i wysiadanie
-
-# stop 1
-et1 = bus1.enter_passengers(stop1.pending)
-ex1 = 0
-# stop 2
-ex2 = bus1.exit_passengers([1, 2, 3])
-et2 = bus1.enter_passengers(stop2.pending)
-# stop 3
-ex3 = bus1.exit_passengers([2])
-et3 = bus1.enter_passengers(stop3.pending)
+    elif type(bus) is Bus2:
+        stop_times = []
+        for stop in stops:
+            q1ex, q2ex = bus.exit_passengers(list(set(np.random.randint(len(bus.passengers)+1, size=int(np.random.lognormal(exiting[0], exiting[1]))))))
+            q1et, q2et = bus.enter_passengers(stop.pending)
+            stop_times.append(time_on_stop_Bus2(q1et, q2et, q1ex, q2ex))
+        return stop_times
 
 
-#print(time_on_stop(et1, ex1))
-#print(time_on_stop(et2, ex2))
-#print(time_on_stop(et3, ex3))
 
-# -------------------------------------------------------------------
 
-# tworzenie busa2
-bus2 = Bus2()
 
-# ----------------------------------------
+bus1_times = []
+bus2_times = []
+for i in range(30):
+    bus1 = Bus()
+    bus2 = Bus2()
+    stops = make_stops(3, (2, 0.1), (0.3, 0.1))
+    stop_times1 = make_trip(bus2, stops, (1, 0.1))
+    stop_times2 = make_trip(bus2, stops, (1, 0.1))
+    bus1_times.append(sum(stop_times1)/len(stop_times1))
+    bus2_times.append(sum(stop_times2)/len(stop_times2))
 
-# tworzenie przystankow
+avg_bus1 = sum(bus1_times)/len(bus1_times)
+avg_bus2 = sum(bus2_times)/len(bus2_times)
 
-# stop1
-stop1 = Stop(np.random.normal(5, 3))
-stop1.add_pending([abs(np.random.normal(10, 5)) for ppl in range(stop1.no_ppl)])
-
-# stop2
-stop2 = Stop(2)
-stop2.add_pending([5 for ppl in range(stop2.no_ppl)])
-stop2exit = [1, 2]
-
-# stop3
-stop3 = Stop(np.random.normal(3, 2))
-stop3.add_pending([np.random.uniform(5) for ppl in range(stop3.no_ppl)])
-
-# ----------------------------------------
-
-# wsiadanie i wysiadanie
-
-# stop 1
-et21 = bus2.enter_passengers(stop1.pending)
-ex21 = 0
-# stop 2
-ex22 = bus2.exit_passengers([1, 2, 3])
-et22 = bus2.enter_passengers(stop2.pending)
-# stop 3
-ex23 = bus2.exit_passengers([2])
-et23 = bus2.enter_passengers(stop3.pending)
-
-print(time_on_stop(et21, ex21))
-print(time_on_stop(et22, ex22))
-print(time_on_stop(et23, ex23))
+print(avg_bus1)
+print(avg_bus2)
