@@ -1,5 +1,8 @@
 import numpy as np
-import random as rnd
+import matplotlib.pyplot as plt
+import seaborn as sns
+sns.set_style("whitegrid")
+
 
 #   Parametry
 # - ilosc przystanków
@@ -29,7 +32,7 @@ class Stop:
     def add_pending(self, times):
         self.pending.extend(times)
 
-class Bus:
+class BusOneWay:
     def __init__(self):
         self.passengers = []
 
@@ -43,7 +46,7 @@ class Bus:
             self.passengers.remove(i)         
         return sum(self.left)
 
-class Bus2:
+class BusTwoWays:
     def __init__(self):
         self. passengers = []
 
@@ -53,7 +56,7 @@ class Bus2:
         self.entering2 = []
 
         for i in pending:
-            if sum(self.entering1) > sum(self.entering2):
+            if len(self.entering1) > len(self.entering2):
                 self.entering2.append(i)
             else:
                 self.entering1.append(i)
@@ -66,7 +69,7 @@ class Bus2:
         self.exiting2 = []
 
         for i in self.left:
-            if sum(self.exiting1) > sum(self.exiting2):
+            if len(self.exiting1) > len(self.exiting2):
                 self.exiting2.append(i)
             else:
                 self.exiting1.append(i)
@@ -110,7 +113,7 @@ def make_trip(bus, stops, exiting):
         stop_times (list): List of stop times on every stop
 
     """
-    if type(bus) is Bus:
+    if type(bus) is BusOneWay:
         stop_times = []
         for stop in stops:
             exiting_time = bus.exit_passengers(list(set(np.random.randint(len(bus.passengers)+1, size=int(np.random.lognormal(exiting[0], exiting[1]))))))
@@ -118,7 +121,7 @@ def make_trip(bus, stops, exiting):
             stop_times.append(time_on_stop_Bus1(entering_time, exiting_time))
         return stop_times
 
-    elif type(bus) is Bus2:
+    elif type(bus) is BusTwoWays:
         stop_times = []
         for stop in stops:
             q1ex, q2ex = bus.exit_passengers(list(set(np.random.randint(len(bus.passengers)+1, size=int(np.random.lognormal(exiting[0], exiting[1]))))))
@@ -126,23 +129,52 @@ def make_trip(bus, stops, exiting):
             stop_times.append(time_on_stop_Bus2(q1et, q2et, q1ex, q2ex))
         return stop_times
 
+def test_buses(n_times, no_stops, entering, times, exiting):
+    bus1_times = []
+    bus2_times = []
+    for i in range(n_times):
+        bus1 = BusOneWay()
+        bus2 = BusTwoWays()
+        stops = make_stops(no_stops, (entering[0], entering[1]), (times[0], times[1]))
+        stop_times1 = make_trip(bus1, stops, (exiting[0], exiting[1]))
+        stop_times2 = make_trip(bus2, stops, (exiting[0], exiting[1]))
+        bus1_times.append(sum(stop_times1)/len(stop_times1))
+        bus2_times.append(sum(stop_times2)/len(stop_times2))
+    return bus1_times, bus2_times
+
+def get_avg(times):
+    avg = sum(times)/len(times)
+    return avg
+
+def plot_graphs(bus1_times, bus2_times):
+    t = np.arange(30)
+    plt.figure()
+    plt.scatter(t, bus1_times, label="Bus One Way")
+    plt.scatter(t, bus2_times, label="Bus Two Ways")
+    plt.legend(loc="lower right")
+
+    plt.figure()
+    sns.distplot(bus1_times, label="Bus One Way")
+    sns.distplot(bus2_times, label="Bus Two Ways")
+    plt.legend(loc="lower right")
+
+    plt.figure()
+    sns.scatterplot(bus1_times, bus2_times)
+    sns.scatterplot(bus2_times, bus1_times)
+
+    plt.figure()
+    data = [bus1_times, bus2_times]
+    sns.boxplot(data=data)
+    plt.show()
 
 
 
 
-bus1_times = []
-bus2_times = []
-for i in range(30):
-    bus1 = Bus()
-    bus2 = Bus2()
-    stops = make_stops(3, (2, 0.1), (0.3, 0.1))
-    stop_times1 = make_trip(bus2, stops, (1, 0.1))
-    stop_times2 = make_trip(bus2, stops, (1, 0.1))
-    bus1_times.append(sum(stop_times1)/len(stop_times1))
-    bus2_times.append(sum(stop_times2)/len(stop_times2))
+bus1_times, bus2_times = test_buses(30, 3, (3, 0.1), (0.3, 0.1), (2, 0.1))
 
-avg_bus1 = sum(bus1_times)/len(bus1_times)
-avg_bus2 = sum(bus2_times)/len(bus2_times)
+avg_bus1 = get_avg(bus1_times)
+avg_bus2 = get_avg(bus2_times)
 
-print(avg_bus1)
-print(avg_bus2)
+print(avg_bus1, avg_bus2)
+
+plot_graphs(bus1_times, bus2_times)
