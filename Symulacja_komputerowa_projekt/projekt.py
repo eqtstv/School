@@ -129,10 +129,23 @@ def make_trip(bus, stops, exiting):
             stop_times.append(time_on_stop_Bus2(q1et, q2et, q1ex, q2ex))
         return stop_times
 
-def test_buses(n_times, no_stops, entering, times, exiting):
+def test_buses(no_times, no_stops, entering, times, exiting):
+    """
+    Args:
+        no_times (int): Ilosc przeprowadzanych testow
+        no_stops (int): Ilosc przystankow
+        entering (avg, std_dev): Srednia i odcylenie dla ilosci wsiadajacych na przystanku
+        times (avg, std_dev): Srednia i odchylenie standardowe czasow wsiadania i wysiadania
+        exiting (avg, std_dev): Srednia i odcylenie dla ilosci wysiadajacych na przystanku
+
+    Returns:
+        bus1_times (list): Lista srednich dla Autobusu z jednym wej i jednym wyj
+        bus2_times (list): Lista srednich dla Autobusu z dwoma wej/wyj
+    """
+
     bus1_times = []
     bus2_times = []
-    for i in range(n_times):
+    for i in range(no_times):
         bus1 = BusOneWay()
         bus2 = BusTwoWays()
         stops = make_stops(no_stops, (entering[0], entering[1]), (times[0], times[1]))
@@ -146,8 +159,8 @@ def get_avg(times):
     avg = sum(times)/len(times)
     return avg
 
-def plot_graphs(bus1_times, bus2_times):
-    t = np.arange(30)
+def plot_graphs(no_times, bus1_times, bus2_times):
+    t = np.arange(no_times)
     plt.figure()
     plt.scatter(t, bus1_times, label="Bus One Way")
     plt.scatter(t, bus2_times, label="Bus Two Ways")
@@ -167,14 +180,39 @@ def plot_graphs(bus1_times, bus2_times):
     sns.boxplot(data=data)
     plt.show()
 
+def plot_graphs_all(no_times, bus1_times, bus2_times):
+    f, axs = plt.subplots(2, 2)
+    t = np.arange(no_times)
+    
+    axs[0, 0].scatter(t, bus1_times, label="Bus One Way")
+    axs[0, 0].scatter(t, bus2_times, label="Bus Two Ways")
+    axs[0, 0].legend(loc="lower right")
+    
+    sns.distplot(bus1_times, label="Bus One Way", ax=axs[0, 1])
+    sns.distplot(bus2_times, label="Bus Two Ways", ax=axs[0, 1])
+    axs[0, 1].legend(loc="lower right")
+    
+    sns.scatterplot(bus1_times, bus2_times, ax=axs[1, 0])
+    sns.scatterplot(bus2_times, bus1_times, ax=axs[1, 0])
+    
+    data = [bus1_times, bus2_times]
+    sns.boxplot(data=data, ax=axs[1, 1])
+    plt.show()
 
 
 
-bus1_times, bus2_times = test_buses(30, 3, (3, 0.1), (0.3, 0.1), (2, 0.1))
 
-avg_bus1 = get_avg(bus1_times)
-avg_bus2 = get_avg(bus2_times)
+t1_bus1_times, t1_bus2_times = test_buses(30, 3, (3, 0.1), (0.3, 0.1), (2, 0.1))
+t2_bus1_times, t2_bus2_times = test_buses(30, 3, (3, 0.1), (0.3, 0.05), (2, 0.1))
 
-print(avg_bus1, avg_bus2)
+t1_avg_bus1 = get_avg(t1_bus1_times)
+t1_avg_bus2 = get_avg(t1_bus2_times)
 
-plot_graphs(bus1_times, bus2_times)
+t2_avg_bus1 = get_avg(t2_bus1_times)
+t2_avg_bus2 = get_avg(t2_bus2_times)
+
+print(t1_avg_bus1, t1_avg_bus2)
+print(t2_avg_bus1, t2_avg_bus2)
+
+#plot_graphs_all(30, t1_bus1_times, t1_bus2_times)
+plot_graphs_all(30, t2_bus1_times, t2_bus2_times)
